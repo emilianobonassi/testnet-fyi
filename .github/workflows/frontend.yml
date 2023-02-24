@@ -1,0 +1,38 @@
+name: "frontend"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths:
+      - 'frontend/**'
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup node@16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      
+      - run: yarn install --immutable
+        working-directory: ./frontend
+
+      - run: yarn build
+        working-directory: ./frontend
+
+      - run: yarn export
+        working-directory: ./frontend
+
+      - name: Update Cloudflare Pages deployment
+        uses: cloudflare/pages-action@v1.3.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: ./frontend/out
