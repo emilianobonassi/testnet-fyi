@@ -14,16 +14,20 @@ class TestnetFyiStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # create vpc w-o nat gw - not needed atm, lowering costs
+        vpc = ec2_.Vpc(self, "TestnetVpc",
+            nat_gateways=0
+        )
+
         # define cluster
-        ecs_cluster = ecs_.Cluster(self, "TestnetCluster")
+        ecs_cluster = ecs_.Cluster(self, "TestnetCluster", vpc=vpc)
 
         # add security group
         sg = ec2_.SecurityGroup(self, 
             "rpc-sg",
             description='security group for rpc',
-            vpc=ecs_cluster.vpc,
+            vpc=vpc,
             allow_all_outbound=True,
-
         )
 
         sg.add_ingress_rule(
@@ -47,7 +51,7 @@ class TestnetFyiStack(Stack):
             ecs_.PortMapping(container_port=8545),
         )
 
-        public_subnets = ecs_cluster.vpc.select_subnets(subnet_type=ec2_.SubnetType.PUBLIC)
+        public_subnets = vpc.select_subnets(subnet_type=ec2_.SubnetType.PUBLIC)
 
         # define lambda
         handler = lambda_.Function(self, "TestnetCreationHandler",
