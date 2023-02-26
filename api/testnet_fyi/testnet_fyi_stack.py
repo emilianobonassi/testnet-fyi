@@ -7,7 +7,7 @@ from aws_cdk import (Stack,
                      aws_apigateway as apigateway,
                      aws_lambda as lambda_)
 
-TESTNET_LIFESPAN = 30*60
+TESTNET_LIFESPAN = 90*60
 TESTNET_MAX_INSTANCES = 3
 class TestnetFyiStack(Stack):
 

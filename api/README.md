@@ -24,5 +24,5 @@ Full stack [here](https://github.com/emilianobonassi/testnet-fyi/blob/main/api/t
 
 ## Parameters
 
-- [TESTNET_LIFESPAN](https://github.com/emilianobonassi/testnet-fyi/blob/main/api/testnet_fyi/testnet_fyi_stack.py#L10), duration in seconds of a testnet (currently 30 mins)
+- [TESTNET_LIFESPAN](https://github.com/emilianobonassi/testnet-fyi/blob/main/api/testnet_fyi/testnet_fyi_stack.py#L10), duration in seconds of a testnet (currently 90 mins)
 - [TESTNET_MAX_INSTANCES](https://github.com/emilianobonassi/testnet-fyi/blob/main/api/testnet_fyi/testnet_fyi_stack.py#L11), max concurrent testnets (currently 3)

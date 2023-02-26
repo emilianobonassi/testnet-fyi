@@ -55,7 +55,7 @@ export default function Home() {
                             </Grid>
                             <Grid item>
                             <Typography textAlign="center">
-                                Create shareable short lived testnets (30 mins)
+                                Create shareable short lived testnets (90 mins)
                             </Typography>
                             </Grid>
                             <Grid>
