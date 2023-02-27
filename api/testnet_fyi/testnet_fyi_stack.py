@@ -2,6 +2,7 @@ import aws_cdk as cdk
 from constructs import Construct
 from aws_cdk import (Stack,
                      aws_iam as iam_,
+                     aws_dynamodb as dynamodb_,
                      aws_ec2 as ec2_,
                      aws_ecs as ecs_,
                      aws_apigateway as apigateway,
@@ -9,6 +10,7 @@ from aws_cdk import (Stack,
 
 TESTNET_LIFESPAN = 90*60
 TESTNET_MAX_INSTANCES = 3
+TOTAL_COUNT_TABLE_ITEM_ID = 'totalCount'
 class TestnetFyiStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -17,6 +19,20 @@ class TestnetFyiStack(Stack):
         # create vpc w-o nat gw - not needed atm, lowering costs
         vpc = ec2_.Vpc(self, "TestnetVpc",
             nat_gateways=0
+        )
+
+        # create dynamodb tables
+        # track network creations - network id, createdAt
+        # count total networks created
+
+        tableTotalCount = dynamodb_.Table(self, "TestnetTotalCountTable",
+            partition_key=dynamodb_.Attribute(name="id", type=dynamodb_.AttributeType.STRING),
+            billing_mode=dynamodb_.BillingMode.PAY_PER_REQUEST
+        )
+
+        tableNetworkInfo = dynamodb_.Table(self, "TestnetNetworkInfoTable",
+            partition_key=dynamodb_.Attribute(name="id", type=dynamodb_.AttributeType.STRING),
+            billing_mode=dynamodb_.BillingMode.PAY_PER_REQUEST,
         )
 
         # define cluster
@@ -63,7 +79,10 @@ class TestnetFyiStack(Stack):
                         TASK_DEFINITION_ARN=task_definition.task_definition_arn,
                         SECURITY_GROUP_ID=sg.security_group_id,
                         PUBLIC_SUBNET_ID=public_subnets.subnet_ids[0],
-                        TESTNET_MAX_INSTANCES=str(TESTNET_MAX_INSTANCES)
+                        TESTNET_MAX_INSTANCES=str(TESTNET_MAX_INSTANCES),
+                        TOTAL_COUNT_TABLE=tableTotalCount.table_name,
+                        TOTAL_COUNT_TABLE_ITEM_ID=TOTAL_COUNT_TABLE_ITEM_ID,
+                        NETWORK_INFO_TABLE=tableNetworkInfo.table_name
                     ),
                     timeout=cdk.Duration.seconds(60)
         )
@@ -82,6 +101,10 @@ class TestnetFyiStack(Stack):
             ],
         ))
 
+        # add permission to write-read dynamo db tables
+        tableTotalCount.grant_read_write_data(handler);
+        tableNetworkInfo.grant_read_write_data(handler);
+
         # define api gw
         api = apigateway.RestApi(self, "testnet-api",
                   rest_api_name="Testnet Service",
@@ -92,3 +115,38 @@ class TestnetFyiStack(Stack):
         # attach api gw to lambda
         lambda_integration = apigateway.LambdaIntegration(handler)
         api.root.add_method("POST", lambda_integration)
+
+        # define another lambda for fetching stats
+        # total created
+
+        statsHandler = lambda_.Function(self, "TestnetStats",
+                    runtime=lambda_.Runtime.PYTHON_3_7,
+                    code=lambda_.Code.from_asset("lambda"),
+                    handler="stats.handler",
+                    environment=dict(
+                        ECS_CLUSTER_ARN=ecs_cluster.cluster_arn,
+                        TESTNET_MAX_INSTANCES=str(TESTNET_MAX_INSTANCES),
+                        TESTNET_LIFESPAN=str(TESTNET_LIFESPAN),
+                        TOTAL_COUNT_TABLE=tableTotalCount.table_name,
+                        TOTAL_COUNT_TABLE_ITEM_ID=TOTAL_COUNT_TABLE_ITEM_ID
+                    )
+        )
+
+        # add permission to read dynamo db tables
+        tableTotalCount.grant_read_data(statsHandler);
+
+        # add permission to get active networks
+        statsHandler.add_to_role_policy(iam_.PolicyStatement(
+            effect=iam_.Effect.ALLOW,
+            actions=[
+                'ecs:ListTasks',
+            ],
+            resources=[
+                '*',
+            ],
+        ))
+
+        # attach api gw to lambda
+        stats_lambda_integration = apigateway.LambdaIntegration(statsHandler)
+        stats_resource = api.root.add_resource("stats")
+        stats_resource.add_method("GET", stats_lambda_integration)

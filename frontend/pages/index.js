@@ -1,17 +1,23 @@
 import Head from 'next/head'
-import { useState } from 'react'
-import { Typography, Container, Button, TextField, IconButton, CircularProgress } from '@mui/material'
+import { useEffect, useState } from 'react'
+import { Typography, Container, Button, TextField, IconButton, CircularProgress, Tooltip } from '@mui/material'
 import { LoadingButton } from '@mui/lab'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Grid from '@mui/material/Unstable_Grid2'
 import Footer from '../components/Footer'
 
 import axios from 'axios'
+import moment from 'moment';
 
 export default function Home() {
     const [rpcUrl, setRpcUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    const [currentActiveNetworks, setCurrentActiveNetworks] = useState(null);
+    const [totalNetworksCreated, setTotalNetworksCreated] = useState(null);
+    const [networkLifespan, setNetworkLifespan] = useState(null);
+    const [maxConcurrentNetworks, setMaxConcurrentNetworks] = useState(null);
 
     const handleButtonClick = () => {
         if (!isLoading) {
@@ -36,6 +42,17 @@ export default function Home() {
         }
     };
 
+    useEffect(() => {
+        (async () => {
+            const result = await axios.get('https://sw0l2ue5r6.execute-api.eu-west-1.amazonaws.com/prod/stats');
+
+            setCurrentActiveNetworks(result.data.currentActiveNetworks);
+            setTotalNetworksCreated(result.data.totalNetworksCreated);
+            setNetworkLifespan(result.data.networkLifespan);
+            setMaxConcurrentNetworks(result.data.maxConcurrentNetworks);
+        })()
+    }, [])
+
 
     return (
         <Container style={{marginTop: '2em'}}>
@@ -55,7 +72,8 @@ export default function Home() {
                             </Grid>
                             <Grid item>
                             <Typography textAlign="center">
-                                Create shareable short lived testnets (90 mins)
+                                Create shareable short lived testnets 
+                                { networkLifespan && <> ({moment.duration(networkLifespan, 'seconds').asMinutes()} mins)</>}
                             </Typography>
                             </Grid>
                             <Grid>
@@ -78,6 +96,28 @@ export default function Home() {
                                 <Grid>
                                 <Typography color='red' textAlign="center">
                                     {error}
+                                </Typography>
+                                </Grid>
+                            }
+
+                            {currentActiveNetworks && 
+                                <Grid>
+                                <Typography textAlign="center">
+                                    Current active networks/max: {currentActiveNetworks}/{maxConcurrentNetworks}
+                                </Typography>
+                                </Grid>
+                            }
+
+                            {totalNetworksCreated && 
+                                <Grid>
+                                <Typography textAlign="center">
+                                    Networks created since&nbsp;
+                                    <Tooltip title="2023-02-24">
+                                        <Typography sx={{textDecoration: 'underline'}} display="inline">
+                                        launch
+                                        </Typography>
+                                    </Tooltip>
+                                    : {totalNetworksCreated}
                                 </Typography>
                                 </Grid>
                             }

@@ -5,8 +5,13 @@ import os
 
 import logging
 import boto3
+import decimal
+
+import uuid
+from datetime import datetime
 
 client = boto3.client('ecs')
+dynamodb = boto3.resource('dynamodb')
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -87,6 +92,38 @@ def handler(event, context):
             "isBase64Encoded": False,
             'body': 'ouch'
         }
+    
+    created_at = int(datetime.timestamp(datetime.now()))
+
+    # two queries
+    # update total count
+    # add tracking new networks
+
+    totalCountTable = dynamodb.Table(os.environ['TOTAL_COUNT_TABLE'])
+
+    totalCountTable.update_item(
+        Key={
+            'id': os.environ['TOTAL_COUNT_TABLE_ITEM_ID']
+        },
+        UpdateExpression="SET val = if_not_exists(val, :start) + :inc",
+
+        ExpressionAttributeValues={
+            ':inc': decimal.Decimal(1),
+            ':start': 0,
+        },
+        ReturnValues="UPDATED_NEW"
+    )
+
+    
+    networkInfoTable = dynamodb.Table(os.environ['NETWORK_INFO_TABLE'])
+
+    networkInfoTable.put_item(
+        Item={
+            'id': str(uuid.uuid4()),
+            'rpc': rpcEndpoint,
+            'created_at': created_at
+        }
+    )
 
     # prepare response
     body = {
