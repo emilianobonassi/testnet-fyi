@@ -73,7 +73,7 @@ export default function Home() {
                             <Grid item>
                             <Typography textAlign="center">
                                 Create shareable short lived testnets 
-                                { networkLifespan && <> ({moment.duration(networkLifespan, 'seconds').asMinutes()} mins)</>}
+                                { networkLifespan !== null && <> ({moment.duration(networkLifespan, 'seconds').asMinutes()} mins)</>}
                             </Typography>
                             </Grid>
                             <Grid>
@@ -100,7 +100,7 @@ export default function Home() {
                                 </Grid>
                             }
 
-                            {currentActiveNetworks && 
+                            {currentActiveNetworks !== null &&
                                 <Grid>
                                 <Typography textAlign="center">
                                     Current active networks/max: {currentActiveNetworks}/{maxConcurrentNetworks}
@@ -108,7 +108,7 @@ export default function Home() {
                                 </Grid>
                             }
 
-                            {totalNetworksCreated && 
+                            {totalNetworksCreated !== null &&
                                 <Grid>
                                 <Typography textAlign="center">
                                     Networks created since&nbsp;
