@@ -37,7 +37,7 @@ def handler(event, context):
     # prepare response
     body = {
         'totalNetworksCreated': totalNetworksCreated,
-        'currentActiveNetworks': len(running_tasks),
+        'currentActiveNetworks': len(running_tasks['taskArns']),
         'maxConcurrentNetworks': TESTNET_MAX_INSTANCES,
         'networkLifespan': TESTNET_LIFESPAN
     }
