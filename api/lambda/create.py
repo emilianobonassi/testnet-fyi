@@ -16,6 +16,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 TESTNET_MAX_INSTANCES = int(os.environ['TESTNET_MAX_INSTANCES'])
+TESTNET_LIFESPAN = int(os.environ['TESTNET_LIFESPAN'])
+TASK_CONTAINER_NAME = os.environ['TASK_CONTAINER_NAME']
 
 def handler(event, context):
     ecs_cluster_arn = os.environ['ECS_CLUSTER_ARN']
@@ -35,6 +37,17 @@ def handler(event, context):
             "isBase64Encoded": False,
             'body': f'Reached max limit of testnets (max={TESTNET_MAX_INSTANCES})'
         }
+
+    # verify params
+    forkedNetwork = ''
+    if event.get('body') is not None:
+        params = json.loads(event.get('body'))
+        forkedNetwork = params.get('forkedNetwork', '')
+
+    # define command for task
+    command = 'anvil --host 0.0.0.0'
+    if forkedNetwork == 'mainnet':
+        command += ' -f https://cloudflare-eth.com'
 
     # create task
     task_definition_arn = os.environ['TASK_DEFINITION_ARN']
@@ -57,6 +70,16 @@ def handler(event, context):
                 'assignPublicIp': 'ENABLED'
             }
         },
+        overrides={
+            'containerOverrides': [
+                {
+                    'name': TASK_CONTAINER_NAME,
+                    'command': [
+                        f'({command}) & pid=$!; echo $pid; sleep {TESTNET_LIFESPAN} && kill -HUP $pid',
+                    ]
+                },
+            ]
+        }
     )
 
     logging.info(r)

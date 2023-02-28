@@ -58,7 +58,8 @@ class TestnetFyiStack(Stack):
             cpu=256 # 0.25 vCPU
 
         )
-        container = task_definition.add_container("TestnetContainer",
+        containerName="TestnetContainer"
+        container = task_definition.add_container(containerName,
             image=ecs_.ContainerImage.from_registry("ghcr.io/foundry-rs/foundry"),
             logging=ecs_.LogDrivers.aws_logs(stream_prefix="TestnetContainerLog"),
             command=[f'(anvil --host 0.0.0.0) & pid=$!; echo $pid; sleep {TESTNET_LIFESPAN} && kill -HUP $pid']
@@ -77,6 +78,8 @@ class TestnetFyiStack(Stack):
                     environment=dict(
                         ECS_CLUSTER_ARN=ecs_cluster.cluster_arn,
                         TASK_DEFINITION_ARN=task_definition.task_definition_arn,
+                        TASK_CONTAINER_NAME=containerName,
+                        TESTNET_LIFESPAN=str(TESTNET_LIFESPAN),
                         SECURITY_GROUP_ID=sg.security_group_id,
                         PUBLIC_SUBNET_ID=public_subnets.subnet_ids[0],
                         TESTNET_MAX_INSTANCES=str(TESTNET_MAX_INSTANCES),

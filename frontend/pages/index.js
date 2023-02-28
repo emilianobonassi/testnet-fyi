@@ -1,6 +1,8 @@
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
-import { Typography, Container, Button, TextField, IconButton, CircularProgress, Tooltip } from '@mui/material'
+import { Typography, Container, Button, TextField, IconButton, CircularProgress, Tooltip, Checkbox } from '@mui/material'
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { LoadingButton } from '@mui/lab'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Grid from '@mui/material/Unstable_Grid2'
@@ -19,12 +21,20 @@ export default function Home() {
     const [networkLifespan, setNetworkLifespan] = useState(null);
     const [maxConcurrentNetworks, setMaxConcurrentNetworks] = useState(null);
 
+    const [fork, setFork] = useState(false);
+
+    const handleFork = (event) => {
+        setFork(event.target.checked);
+    };
+
     const handleButtonClick = () => {
         if (!isLoading) {
           setError(null);
           setIsLoading(true);
 
-          axios.post('https://sw0l2ue5r6.execute-api.eu-west-1.amazonaws.com/prod/')
+          const payload = fork ? { 'forkedNetwork' : 'mainnet'} : {};
+
+          axios.post('https://sw0l2ue5r6.execute-api.eu-west-1.amazonaws.com/prod/', payload)
           .then((response) => {
             setRpcUrl(response.data.rpc);
             setIsLoading(false);
@@ -77,9 +87,18 @@ export default function Home() {
                             </Typography>
                             </Grid>
                             <Grid>
-                                <Grid container spacing={1} justifyContent="center">
-                                    <Grid item  alignItems="stretch" style={{ display: "flex" }}>
-                                        <LoadingButton variant="contained" loading={isLoading} onClick={handleButtonClick}>Create</LoadingButton>
+                                <Grid container direction="column" alignItems="center" spacing={1} justifyContent="center">
+                                    <Grid item>
+                                        <Grid container spacing={1}>
+                                            <Grid item>
+                                                <FormGroup>
+                                                    <FormControlLabel control={<Checkbox checked={fork} onChange={handleFork}/>} label="Fork mainnet" />
+                                                </FormGroup>
+                                            </Grid>
+                                            <Grid item alignItems="stretch" style={{ display: "flex" }}>
+                                                <LoadingButton variant="contained" loading={isLoading} onClick={handleButtonClick}>Create</LoadingButton>
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                     <Grid item>
                                         <TextField
